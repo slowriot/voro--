@@ -11,14 +11,13 @@
 #define VOROPP_CONTAINER_HH
 
 #include "config.hh"
-#include <cstdio>
+#include <cstdlib>
 #include <iostream>
 #include <fstream>
 #include <cmath>
 using namespace std;
 
 class voropp_loop;
-class radius_mono;
 class radius_poly;
 class wall;
 
@@ -33,20 +32,17 @@ class wall;
 template<class r_option>
 class container_base {
 	public:
-		container_base(fpoint xa,fpoint xb,fpoint ya,fpoint yb,fpoint za,fpoint zb,int xn,int yn,int zn,const bool xper,const bool yper,const bool zper,int memi);
-		virtual ~container_base();
+		container_base(fpoint xa,fpoint xb,fpoint ya,fpoint yb,fpoint za,fpoint zb,int xn,int yn,int zn,bool xper,bool yper,bool zper,int memi);
+		~container_base();
 		void draw_particles(const char *filename);
 		void draw_particles();
 		void draw_particles(ostream &os);
 		void draw_particles_pov(const char *filename);
 		void draw_particles_pov();
 		void draw_particles_pov(ostream &os);
-		void draw_lammps_restart(ostream &os,fpoint timestep,bool scaled=false);
 		void import(istream &is);
 		inline void import();
 		inline void import(const char *filename);
-		void skip_lammps_restart(istream &is);
-		void import_lammps_restart(istream &is,bool scaled=false);
 		void region_count();
 		void clear();
 		void draw_cells_gnuplot(const char *filename,fpoint xmin,fpoint xmax,fpoint ymin,fpoint ymax,fpoint zmin,fpoint zmax);
@@ -58,15 +54,15 @@ class container_base {
 		fpoint packing_fraction(fpoint *bb,fpoint xmin,fpoint xmax,fpoint ymin,fpoint ymax,fpoint zmin,fpoint zmax);
 		fpoint sum_cell_volumes();
 		void compute_all_cells();
-		void count_all_faces(ostream &os);
-		void count_all_faces();
-		void count_all_faces(const char *filename);
 		void print_all(ostream &os);
 		void print_all();
 		void print_all(const char *filename);
 		void print_all_neighbor(ostream &os);
 		void print_all_neighbor();
 		void print_all_neighbor(const char *filename);
+		void print_all_custom(const char *format,ostream &os);
+		void print_all_custom(const char *format);
+		void print_all_custom(const char *format,const char *filename);
 		template<class n_option>
 		inline bool compute_cell_sphere(voronoicell_base<n_option> &c,int i,int j,int k,int ijk,int s);
 		template<class n_option>
@@ -78,8 +74,8 @@ class container_base {
 		void put(int n,fpoint x,fpoint y,fpoint z);
 		void put(int n,fpoint x,fpoint y,fpoint z,fpoint r);
 		void add_wall(wall &w);
-		bool point_inside(fpoint x,fpoint y,fpoint z); 
-		bool point_inside_walls(fpoint x,fpoint y,fpoint z); 
+		bool point_inside(fpoint x,fpoint y,fpoint z);
+		bool point_inside_walls(fpoint x,fpoint y,fpoint z);
 	protected:
 		/** The minimum x coordinate of the container. */
 		const fpoint ax;
@@ -137,41 +133,9 @@ class container_base {
 		/** A boolean value that determines if the z coordinate in
 		 * periodic or not. */
 		const bool zperiodic;
-		/** This array holds the number of particles within each
-		 * computational box of the container. */
-		int *co;
-		/** This array holds the maximum amount of particle memory for
-		 * each computational box of the container. If the number of
-		 * particles in a particular box ever approaches this limit,
-		 * more is allocated using the add_particle_memory() function.
-		 */
-		int *mem;
-		/** This array holds the numerical IDs of each particle in each
-		 * computational box. */
-		int **id;
-		/** This array is used as a mask. */
-		unsigned int *mask;
-		/** This array is used to store the list of blocks to test during
-		 * the Voronoi cell computation. */
-		int *sl;
 		/** This sets the current value being used to mark tested blocks
 		 * in the mask. */
 		unsigned int mv;
-		/** The position of the first element on the search list to be
-		 * considered. */
-		int s_start;
-		/** The position of the last element on the search list to be
-		 * considered. */
-		int s_end;
-		/** The current size of the search list. */
-		int s_size;
-		/** A two dimensional array holding particle positions. For the
-		 * derived container_poly class, this also holds particle
-		 * radii. */
-		fpoint **p;
-		/** This array holds pointers to any wall objects that have
-		 * been added to the container. */
-		wall **walls;
 		/** The current number of wall objects, initially set to zero. */
 		int wall_number;
 		/** The current amount of memory allocated for walls. */
@@ -193,16 +157,51 @@ class container_base {
 		 * class container_poly, then this is set to 4, to also hold
 		 * the particle radii. */
 		int sz;
+		/** The position of the first element on the search list to be
+		 * considered. */
+		int s_start;
+		/** The position of the last element on the search list to be
+		 * considered. */
+		int s_end;
+		/** The current size of the search list. */
+		int s_size;		
+		/** This array holds the number of particles within each
+		 * computational box of the container. */
+		int *co;
+		/** This array holds the maximum amount of particle memory for
+		 * each computational box of the container. If the number of
+		 * particles in a particular box ever approaches this limit,
+		 * more is allocated using the add_particle_memory() function.
+		 */
+		int *mem;
+		/** This array is used during the cell computation to determine
+		 * which blocks have been considered. */
+		unsigned int *mask;
+		/** This array is used to store the list of blocks to test during
+		 * the Voronoi cell computation. */
+		int *sl;		
 		/** An array to hold the minimum distances associated with the
 		 * worklists. This array is initialized during container
 		 * construction, by the initialize_radii() routine. */
 		fpoint *mrad;
+		/** This array holds pointers to any wall objects that have
+		 * been added to the container. */
+		wall **walls;
+		/** This array holds the numerical IDs of each particle in each
+		 * computational box. */
+		int **id;
+		/** A two dimensional array holding particle positions. For the
+		 * derived container_poly class, this also holds particle
+		 * radii. */
+		fpoint **p;
 
 		template<class n_option>
-		inline void print_all(ostream &os,voronoicell_base<n_option> &c);
+		inline void print_all_internal(voronoicell_base<n_option> &c,ostream &os);
+		template<class n_option>
+		void print_all_custom_internal(voronoicell_base<n_option> &c,const char *format,ostream &os);
 		template<class n_option>
 		inline bool initialize_voronoicell(voronoicell_base<n_option> &c,fpoint x,fpoint y,fpoint z);
-		virtual void add_particle_memory(int i);
+		void add_particle_memory(int i);
 		void add_list_memory();
 	private:
 #include "worklist.hh"
@@ -225,7 +224,6 @@ class container_base {
 		inline bool compute_min_max_radius(int di,int dj,int dk,fpoint fx,fpoint fy,fpoint fz,fpoint gx,fpoint gy,fpoint gz,fpoint& crs,fpoint mrs);
 		friend class voropp_loop;
 		friend class radius_poly;
-		friend class radius_mono;
 };
 
 /** \brief A class encapsulating all routines specifically needed in
@@ -244,7 +242,8 @@ class radius_mono {
 		const int mem_size;
 		/** This constructor sets a pointer back to the container class
 		 * that created it, and initializes the mem_size constant to 3.
-		 */
+		 * \param[in] icc a pointer the container class that created
+		 *                this class. */
 		radius_mono(container_base<radius_mono> *icc) : mem_size(3), cc(icc) {};
 		inline void import(istream &is);
 		/** This is a blank placeholder function that does nothing. */
@@ -257,11 +256,9 @@ class radius_mono {
 		inline fpoint cutoff(fpoint lrs);
 		inline fpoint scale(fpoint rs,int t,int q);
 		/** This is a blank placeholder function that does nothing. */
-		inline void print(ostream &os,int ijk,int q) {};
+		inline void print(ostream &os,int ijk,int q,bool later=true) {};
 		inline void rad(ostream &os,int l,int c);
-		inline void diam(ostream &os,int l,int c);
-		inline void import_lammps(istream &is,int n,bool scaled);
-	private:	
+	private:
 		container_base<radius_mono> *cc;
 };
 
@@ -281,7 +278,8 @@ class radius_poly {
 		/** This constructor sets a pointer back to the container class
 		 * that created it, and initializes the mem_size constant to 4.
 		 */
-		radius_poly(container_base<radius_poly> *icc) : mem_size(4), cc(icc) {};
+		radius_poly(container_base<radius_poly> *icc) :
+			mem_size(4), cc(icc), max_radius(0) {};
 		inline void import(istream &is);
 		inline void store_radius(int i,int j,fpoint r);
 		inline void clear_max();
@@ -289,24 +287,22 @@ class radius_poly {
 		inline fpoint volume(int ijk,int s);
 		inline fpoint cutoff(fpoint lrs);
 		inline fpoint scale(fpoint rs,int t,int q);
-		inline void print(ostream &os,int ijk,int q);
+		inline void print(ostream &os,int ijk,int q,bool later=true);
 		inline void rad(ostream &os,int l,int c);
-		inline void diam(ostream &os,int l,int c);
-		inline void import_lammps(istream &is,int n,bool scaled);
-	private:	
+	private:
 		container_base<radius_poly> *cc;
 		fpoint max_radius,crad,mul;
 };
 
 /** \brief A class to handle loops on regions of the container handling
- * non-periodic and periodic boundary conditions. 
+ * non-periodic and periodic boundary conditions.
  *
  * Many of the container routines require scanning over a rectangular sub-grid
  * of blocks, and the routines for handling this are stored in the voropp_loop
  * class. A voropp_loop class can first be initialized to either calculate the
  * subgrid which is within a distance r of a vector (vx,vy,vz), or a subgrid
  * corresponding to a rectangular box. The routine inc() can then be
- * successively called to step through all the blocks within this subgrid. 
+ * successively called to step through all the blocks within this subgrid.
  */
 class voropp_loop {
 	public:
@@ -315,8 +311,6 @@ class voropp_loop {
 		inline int init(fpoint vx,fpoint vy,fpoint vz,fpoint r,fpoint &px,fpoint &py,fpoint &pz);
 		inline int init(fpoint xmin,fpoint xmax,fpoint ymin,fpoint ymax,fpoint zmin,fpoint zmax,fpoint &px,fpoint &py,fpoint &pz);
 		inline int inc(fpoint &px,fpoint &py,fpoint &pz);
-		inline int reset(fpoint &px,fpoint &py,fpoint &pz);
-		inline bool reached(int ri,int rj,int rk);
 		/** The current block index in the x direction, referencing a
 		 * real cell in the range 0 to nx-1. */
 		int ip;
@@ -326,17 +320,8 @@ class voropp_loop {
 		/** The current block index in the z direction, referencing a
 		 * real cell in the range 0 to nz-1. */
 		int kp;
-		/** The current block index in the x direction, possibly refering
-		 * to an image block outside the normal range of 0 to nx-1. */
-		int i;
-		/** The current block index in the y direction, possibly refering
-		 * to an image block outside the normal range of 0 to ny-1. */
-		int j;
-		/** The current block index in the z direction, possibly refering
-		 * to an image block outside the normal range of 0 to nz-1. */
-		int k;
 	private:
-		int ai,bi,aj,bj,ak,bk,s;
+		int i,j,k,ai,bi,aj,bj,ak,bk,s;
 		int aip,ajp,akp,inc1,inc2;
 		inline int step_mod(int a,int b);
 		inline int step_div(int a,int b);
@@ -364,10 +349,6 @@ class wall {
 		/** A pure virtual function for cutting a cell with
 		 * neighbor-tracking enabled with a wall. */
 		virtual bool cut_cell(voronoicell_base<neighbor_track> &c,fpoint x,fpoint y,fpoint z) = 0;
-		/** A pure virtual function for returning the minimum distance
-		 * vector from a position to the wall, used in the dynamic
-		 * relaxation calculations. */
-		virtual void min_distance(fpoint x,fpoint y,fpoint z,fpoint &dx,fpoint &dy,fpoint &dz) = 0;
 };
 
 /** The basic container class. */
